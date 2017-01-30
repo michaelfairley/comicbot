@@ -1,0 +1,11 @@
+[package]
+name = "comicbot"
+version = "0.1.0"
+authors = ["Michael Fairley <michaelfairley@gmail.com>"]
+
+[dependencies]
+reqwest = "*"
+rss = "*"
+RustyXML = "*"
+csv = "*"
+serde_json = "*"
