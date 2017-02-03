@@ -2,6 +2,7 @@ extern crate reqwest;
 extern crate rss;
 extern crate xml;
 extern crate csv;
+#[macro_use]
 extern crate serde_json;
 
 use std::{fs,io};
@@ -13,10 +14,9 @@ fn main() {
 
 
 fn post_to_slack(message: String) {
-  // TODO: replace with json! once reqwest upgrades its serde dependency
-  let json = serde_json::builder::ObjectBuilder::new()
-    .insert("text", message)
-    .build();
+  let json = json!({
+    "text": message,
+  });
 
   let client = reqwest::Client::new().unwrap();
   client.post(&std::env::var("SLACK_WEBHOOK_URL").expect("SLACK_WEBHOOK_URL must be set"))
