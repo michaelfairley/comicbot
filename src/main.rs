@@ -29,39 +29,37 @@ fn pdl() {
   let existing = existing_pdls();
   let pdls = get_pdls();
 
-  let new = pdls.iter().filter(|p| !existing.contains(p)).collect::<Vec<_>>();
+  let new = pdls.iter().filter(|&&(ref guid, _, _)| !existing.contains(guid)).collect::<Vec<_>>();
 
   let f = fs::OpenOptions::new()
     .append(true)
     .create(true)
     .open("pdl").unwrap();
 
-  let mut csv = csv::Writer::from_writer(f)
-    .delimiter(b':');
+  for &(ref guid, ref title, ref url) in new {
+    use io::Write;
 
-  for comic in new {
-    post_to_slack(format!("{}\n{}", comic.0, comic.1));
-    csv.encode(comic).unwrap();
+    post_to_slack(format!("{}\n{}", title, url));
+
+    writeln!(&f, "{}", guid).unwrap();
+    println!("{}", guid);
   }
 }
 
-fn existing_pdls() -> HashSet<(String, String)> {
+fn existing_pdls() -> HashSet<String> {
   let mut set = HashSet::new();
 
   if let Ok(f) = fs::File::open("pdl") {
-    let mut csv = csv::Reader::from_reader(f)
-      .has_headers(false)
-      .delimiter(b':');
+    use io::BufRead;
 
-    for row in csv.decode() {
-      set.insert(row.unwrap());
-    }
+    let f = io::BufReader::new(f);
+    set.extend(f.lines().map(Result::unwrap));
   }
 
   set
 }
 
-fn get_pdls() -> Vec<(String, String)> {
+fn get_pdls() -> Vec<(String, String, String)> {
   let response = reqwest::get("http://feeds.feedburner.com/PoorlyDrawnLines?format=xml").expect("Bad response");
 
   let buf_response = io::BufReader::new(response);
@@ -69,11 +67,12 @@ fn get_pdls() -> Vec<(String, String)> {
 
   channel.items.into_iter().map(|item| {
     let title = item.title.unwrap().to_lowercase();
+    let guid = item.guid.unwrap().value;
     let body = item.content.expect("No content").parse::<xml::Element>().expect("Couldn't parse content");
     let image = body.get_child("img", None).expect("No img");
     let image_url = image.get_attribute("src", None).expect("No src");
 
 
-    (title, image_url.to_string())
+    (guid, title, image_url.to_string())
   }).collect()
 }
