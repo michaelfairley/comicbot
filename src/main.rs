@@ -37,7 +37,7 @@ fn pdl() {
     .open("pdl").unwrap();
 
   for &(ref guid, ref title, ref url) in new {
-    use io::Write;
+    use std::io::Write;
 
     post_to_slack(format!("{}\n{}", title, url));
 
@@ -50,7 +50,7 @@ fn existing_pdls() -> HashSet<String> {
   let mut set = HashSet::new();
 
   if let Ok(f) = fs::File::open("pdl") {
-    use io::BufRead;
+    use std::io::BufRead;
 
     let f = io::BufReader::new(f);
     set.extend(f.lines().map(Result::unwrap));
