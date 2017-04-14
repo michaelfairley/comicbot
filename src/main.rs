@@ -65,14 +65,16 @@ fn get_pdls() -> Vec<(String, String, String)> {
   let buf_response = io::BufReader::new(response);
   let channel = rss::Channel::read_from(buf_response).expect("Couldn't read channel");
 
-  channel.items.into_iter().map(|item| {
+  channel.items.into_iter().filter_map(|item| {
     let title = item.title.unwrap().to_lowercase();
     let guid = item.guid.unwrap().value;
     let body = item.content.expect("No content").parse::<xml::Element>().expect("Couldn't parse content");
-    let image = body.get_child("img", None).expect("No img");
-    let image_url = image.get_attribute("src", None).expect("No src");
 
-
-    (guid, title, image_url.to_string())
+    if let Some(image) = body.get_child("img", None) {
+      let image_url = image.get_attribute("src", None).expect("No src");
+      Some((guid, title, image_url.to_string()))
+    } else {
+      None
+    }
   }).collect()
 }
