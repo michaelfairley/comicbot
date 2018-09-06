@@ -216,9 +216,13 @@ fn post_to_slack<C: Comic>(message: &str) {
     "text": message,
   });
 
-  let client = reqwest::Client::new().unwrap();
-  client.post(&std::env::var("SLACK_WEBHOOK_URL").expect("SLACK_WEBHOOK_URL must be set"))
-    .json(&json)
-    .send()
-    .expect("Posting to Slack failed");
+  if let Ok(slack_webhook_url) = std::env::var("SLACK_WEBHOOK_URL") {
+    let client = reqwest::Client::new().unwrap();
+    client.post(&slack_webhook_url)
+      .json(&json)
+      .send()
+      .expect("Posting to Slack failed");
+  } else {
+    println!("{}", json);
+  }
 }
