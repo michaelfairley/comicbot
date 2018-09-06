@@ -1,14 +1,3 @@
-[root]
-name = "comicbot"
-version = "0.1.0"
-dependencies = [
- "RustyXML 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "csv 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "reqwest 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rss 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
 [[package]]
 name = "RustyXML"
 version = "0.1.1"
@@ -37,6 +26,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "byteorder"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "comicbot"
+version = "0.1.0"
+dependencies = [
+ "RustyXML 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "csv 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "reqwest 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rss 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "core-foundation"
