@@ -12,6 +12,7 @@ fn main() {
   go::<PDL>();
   go::<WCN>();
   go::<JLO>();
+  go::<SMBC>();
 }
 
 fn go<C: Comic>() {
@@ -172,6 +173,37 @@ impl Comic for JLO {
           image_url: image_url.to_string(),
         }
       })
+    }).collect()
+  }
+}
+
+struct SMBC;
+impl Comic for SMBC {
+  const USERNAME: &'static str = "saturdaymorningbreakfastcereal";
+  const ICON_URL: &'static str = "https://pbs.twimg.com/profile_images/1733661436/41813_104538479599168_2496_n_400x400.jpg";
+  const EXISTING_FILE_NAME: &'static str = "smbc";
+
+  fn get_current() -> Vec<Instance> {
+    let response = reqwest::get("https://www.smbc-comics.com/comic/rss").expect("Bad response");
+
+    let buf_response = io::BufReader::new(response);
+    let channel = rss::Channel::read_from(buf_response).expect("Couldn't read channel");
+
+    channel.items.into_iter().filter_map(|item| {
+      let guid = item.guid.unwrap().value;
+      let body = item.description.expect("No description").parse::<xml::Element>().expect("Couldn't parse description");
+
+      if let Some(image) = body.get_child("img", None) {
+        let image_url = image.get_attribute("src", None).expect("No src")
+          .replace(" ", "%20");
+        Some(Instance{
+          guid,
+          title: None,
+          image_url: image_url.to_string(),
+        })
+      } else {
+        None
+      }
     }).collect()
   }
 }
