@@ -31,11 +31,17 @@ fn go<C: Comic>() {
   for instance in new {
     use std::io::Write;
 
-    let message = if let Some(title) = &instance.title {
-      format!("{}\n{}", title, instance.image_url)
-    } else {
-      instance.image_url.clone()
-    };
+    let mut message = String::new();
+
+    if let Some(title) = &instance.title {
+      message.push_str(title);
+      message.push_str("\n");
+    }
+    message.push_str(&instance.image_url);
+    if let Some(alt_text) = &instance.alt_text {
+      message.push_str("\n");
+      message.push_str(alt_text);
+    }
 
     post_to_slack::<C>(&message);
 
@@ -62,6 +68,7 @@ fn existing<C: Comic>() -> HashSet<String> {
 struct Instance {
   guid: String,
   title: Option<String>,
+  alt_text: Option<String>,
   image_url: String,
 }
 
@@ -95,6 +102,7 @@ impl Comic for PDL {
         Some(Instance{
           guid,
           title: Some(title),
+          alt_text: None,
           image_url: image_url.to_string(),
         })
       } else {
@@ -133,6 +141,7 @@ impl Comic for WCN {
         Instance{
           guid,
           title: None,
+          alt_text: None,
           image_url: image_url.to_string(),
         }
       })
@@ -170,6 +179,7 @@ impl Comic for JLO {
         Instance{
           guid,
           title: None,
+          alt_text: None,
           image_url: image_url.to_string(),
         }
       })
@@ -191,14 +201,25 @@ impl Comic for SMBC {
 
     channel.items.into_iter().filter_map(|item| {
       let guid = item.guid.unwrap().value;
-      let body = item.description.expect("No description").parse::<xml::Element>().expect("Couldn't parse description");
 
-      if let Some(image) = body.get_child("img", None) {
+      let title = item.title.unwrap().trim_left_matches("Saturday Morning Breakfast Cereal - ").to_string();
+
+
+      let mut p = xml::Parser::new();
+      let mut e = xml::ElementBuilder::new();
+      p.feed_str(&item.description.expect("No description"));
+      let nodes = p.filter_map(|x| e.handle_event(x)).map(Result::unwrap).collect::<Vec<_>>();
+
+      if let Some(image) = nodes.get(0).and_then(|n| n.get_child("img", None)) {
         let image_url = image.get_attribute("src", None).expect("No src")
           .replace(" ", "%20");
+
+        let text = nodes.get(1).map(|n| n.content_str().trim_left_matches("Hovertext:").to_string());
+
         Some(Instance{
           guid,
-          title: None,
+          title: Some(title),
+          alt_text: text,
           image_url: image_url.to_string(),
         })
       } else {
