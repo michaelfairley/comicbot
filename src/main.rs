@@ -11,11 +11,13 @@ use std::collections::HashSet;
 fn main() {
   go::<PDL>();
   go::<WCN>();
+  go::<JLO>();
 }
 
 fn go<C: Comic>() {
   let existing = existing::<C>();
-  let current = C::get_current();
+  let mut current = C::get_current();
+  current.reverse();
 
   let new = current.iter().filter(|i| !existing.contains(&i.guid)).collect::<Vec<_>>();
 
@@ -127,6 +129,43 @@ impl Comic for WCN {
       img.map(|img| {
         let image_url = img.get_attribute("src", None).expect("No src");
         let image_url = image_url.replace("_500.png", "_1280.png");
+        Instance{
+          guid,
+          title: None,
+          image_url: image_url.to_string(),
+        }
+      })
+    }).collect()
+  }
+}
+
+struct JLO;
+impl Comic for JLO {
+  const USERNAME: &'static str = "jakelikesonions";
+  const ICON_URL: &'static str = "https://pbs.twimg.com/profile_images/915262151270572032/FW9GE1_O_400x400.jpg";
+  const EXISTING_FILE_NAME: &'static str = "jlo";
+
+
+  fn get_current() -> Vec<Instance> {
+    let response = reqwest::get("http://jakelikesonions.com/rss").expect("Bad response");
+
+    let buf_response = io::BufReader::new(response);
+    let channel = rss::Channel::read_from(buf_response).expect("Couldn't read channel");
+
+    channel.items.into_iter().filter_map(|item| {
+      let guid = item.guid.unwrap().value;
+      let image = item.description.expect("No description").parse::<xml::Element>().expect("Couldn't parse description");
+
+      let img = if image.name == "img" {
+        Some(&image)
+      } else if let Some(img) = image.get_child("img", None) {
+        Some(img)
+      } else { None };
+
+      img.map(|img| {
+        let image_url = img.get_attribute("src", None).expect("No src")
+          .replace("_540.jpg", "_1280.jpg")
+          .replace("_500.jpg", "_1280.jpg");
         Instance{
           guid,
           title: None,
