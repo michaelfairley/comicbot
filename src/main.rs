@@ -34,9 +34,15 @@ fn go<C: Comic>() {
     let mut message = String::new();
 
     if let Some(title) = &instance.title {
+      message.push_str("<");
+      message.push_str(&instance.link);
+      message.push_str("|");
       message.push_str(title);
-      message.push_str("\n");
+      message.push_str(">");
+    } else {
+      message.push_str(&instance.link);
     }
+    message.push_str("\n");
     message.push_str(&instance.image_url);
     if let Some(alt_text) = &instance.alt_text {
       message.push_str("\n");
@@ -70,6 +76,7 @@ struct Instance {
   title: Option<String>,
   alt_text: Option<String>,
   image_url: String,
+  link: String,
 }
 
 trait Comic {
@@ -97,10 +104,13 @@ impl Comic for PDL {
       let guid = item.guid.unwrap().value;
       let body = item.content.expect("No content").parse::<xml::Element>().expect("Couldn't parse content");
 
+      let link = item.extensions["feedburner"]["origLink"][0].value.as_ref().unwrap().to_string();
+
       if let Some(image) = body.get_child("img", None) {
         let image_url = image.get_attribute("src", None).expect("No src");
         Some(Instance{
           guid,
+          link,
           title: Some(title),
           alt_text: None,
           image_url: image_url.to_string(),
@@ -128,6 +138,7 @@ impl Comic for WCN {
     channel.items.into_iter().filter_map(|item| {
       let guid = item.guid.unwrap().value;
       let image = item.description.expect("No description").parse::<xml::Element>().expect("Couldn't parse description");
+      let link = item.link.unwrap();
 
       let img = if image.name == "img" {
         Some(&image)
@@ -140,6 +151,7 @@ impl Comic for WCN {
         let image_url = image_url.replace("_500.png", "_1280.png");
         Instance{
           guid,
+          link,
           title: None,
           alt_text: None,
           image_url: image_url.to_string(),
@@ -165,6 +177,7 @@ impl Comic for JLO {
     channel.items.into_iter().filter_map(|item| {
       let guid = item.guid.unwrap().value;
       let image = item.description.expect("No description").parse::<xml::Element>().expect("Couldn't parse description");
+      let link = item.link.unwrap();
 
       let img = if image.name == "img" {
         Some(&image)
@@ -178,6 +191,7 @@ impl Comic for JLO {
           .replace("_500.jpg", "_1280.jpg");
         Instance{
           guid,
+          link,
           title: None,
           alt_text: None,
           image_url: image_url.to_string(),
@@ -203,6 +217,7 @@ impl Comic for SMBC {
       let guid = item.guid.unwrap().value;
 
       let title = item.title.unwrap().trim_left_matches("Saturday Morning Breakfast Cereal - ").to_string();
+      let link = item.link.unwrap();
 
 
       let mut p = xml::Parser::new();
@@ -218,6 +233,7 @@ impl Comic for SMBC {
 
         Some(Instance{
           guid,
+          link,
           title: Some(title),
           alt_text: text,
           image_url: image_url.to_string(),
@@ -235,6 +251,7 @@ fn post_to_slack<C: Comic>(message: &str) {
     "username": C::USERNAME,
     "icon_url": C::ICON_URL,
     "text": message,
+    "unfurl_links": false,
   });
 
   if let Ok(slack_webhook_url) = std::env::var("SLACK_WEBHOOK_URL") {
