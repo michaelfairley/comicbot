@@ -223,7 +223,7 @@ impl Comic for SMBC {
       let mut p = xml::Parser::new();
       let mut e = xml::ElementBuilder::new();
       p.feed_str(&item.description.expect("No description"));
-      let nodes = p.filter_map(|x| e.handle_event(x)).map(Result::unwrap).collect::<Vec<_>>();
+      let nodes = p.filter_map(|x| e.handle_event(x)).filter_map(Result::ok).collect::<Vec<_>>();
 
       if let Some(image) = nodes.get(0).and_then(|n| n.get_child("img", None)) {
         let image_url = image.get_attribute("src", None).expect("No src")
